@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Getting started with ellmercodex</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Getting started with ellmercodex</h1>
+
+
+
+<p><code>ellmercodex</code> connects <code>ellmer</code> chats to a
+ChatGPT subscription through OpenAI’s documented “Sign in with ChatGPT”
+flow for open-source, locally hosted apps (<a href="https://developers.openai.com/siwc/token-sharing-open-source" class="uri">https://developers.openai.com/siwc/token-sharing-open-source</a>)
+and the public Responses API. Its stable core is the public
+<code>ellmer</code> <code>Chat</code> object (0.5.0 or later) for
+interactive, single-conversation work. ChatGPT plan usage is an OpenAI
+preview feature; the package is not endorsed or supported by OpenAI.</p>
+<p>Package loading, examples, vignettes, and automated tests do not
+authenticate, open a browser, inspect stored credentials, or make
+network requests.</p>
+<div id="check-the-local-integration" class="section level2">
+<h2>Check the local integration</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(ellmercodex)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">codex_available</span>()</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code>codex_available()</code> checks installed dependencies, static
+configuration, and the supported <code>ellmer</code> compatibility seam.
+Its default does not inspect a credential store or contact the network,
+and <code>TRUE</code> does not guarantee that a remote request will
+succeed. After authentication, <code>codex_models()</code> queries
+<code>https://api.openai.com/v1/models</code> with the ChatGPT plan
+token and returns the models listed for the account
+(<code>visibility: &quot;list&quot;</code>). Explicitly selected model IDs absent
+from it are still passed to the service, which validates access and
+reasoning effort:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>models <span class="ot">&lt;-</span> <span class="fu">codex_models</span>()</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>models[<span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;display_name&quot;</span>, <span class="st">&quot;default_reasoning_effort&quot;</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>         <span class="st">&quot;supported_reasoning_efforts&quot;</span>)]</span></code></pre></div>
+</div>
+<div id="authenticate-explicitly" class="section level2">
+<h2>Authenticate explicitly</h2>
+<p>Authentication happens only after a direct call to
+<code>codex_login()</code>. The function opens a browser where you
+choose a ChatGPT account and workspace and allow ChatGPT plan usage. It
+receives the callback on <code>http://127.0.0.1:1455/callback</code>
+(set <code>ELLMERCODEX_CALLBACK_PORT</code> to change the port), checks
+the OAuth state, exchanges the PKCE-protected code with the client ID
+that OpenAI issued for this registration, verifies the ID token, and
+checks that the <code>chatgpt.tokens.use.direct</code> scope was
+granted. It does not use the macOS Keychain or another OS keyring.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>auth <span class="ot">&lt;-</span> <span class="fu">codex_login</span>()</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">codex_account</span>(auth)</span></code></pre></div>
+<p><code>codex_account()</code> omits tokens and redacts the account
+identifier. The package does not read the Codex CLI credential file or
+another application’s stored session.</p>
+<p>Set <code>persist = FALSE</code> to keep the credential only in the
+current R process:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>auth <span class="ot">&lt;-</span> <span class="fu">codex_login</span>(<span class="at">persist =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>chat <span class="ot">&lt;-</span> <span class="fu">chat_codex</span>(<span class="at">model =</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;ELLMERCODEX_MODEL&quot;</span>))</span></code></pre></div>
+<p>The process-local session is cleared by <code>codex_logout()</code>
+and its tokens are never written to disk or an OS keyring.</p>
+<p>Persistent credentials are stored in <code>credentials.json</code>
+below <code>tools::R_user_dir(&quot;ellmercodex&quot;, &quot;config&quot;)</code>, written
+atomically with owner-only permissions. Set
+<code>ELLMERCODEX_HOME</code> before the first credential access to use
+a different private directory:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">ELLMERCODEX_HOME =</span> <span class="st">&quot;/path/to/a/private/directory&quot;</span>)</span></code></pre></div>
+<p>The same directory holds <code>host-id</code>, a stable and opaque
+host identifier that OpenAI requires before the first sign-in. Access
+tokens last an hour and are refreshed automatically; refreshes are
+serialized across R processes because refresh tokens rotate. The first
+sign-in creates a registration bound to the chosen account and
+workspace, and later sign-ins reuse it. To use another account or
+workspace, call <code>codex_logout()</code> first. For an app hosted on
+a Linux VM, follow the <a href="https://github.com/simxnherrera/ellmercodex/blob/main/docs/hosted-oauth.md">single-process
+deployment guide</a>.</p>
+</div>
+<div id="create-a-text-chat" class="section level2">
+<h2>Create a text chat</h2>
+<p>By default, <code>chat_codex()</code> selects a usable model from the
+authenticated account catalog. Select a model explicitly when you need a
+stable choice, and choose reasoning effort from the catalog when it
+lists the model:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>chat <span class="ot">&lt;-</span> <span class="fu">chat_codex</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="at">system_prompt =</span> <span class="st">&quot;Be concise.&quot;</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">model =</span> models<span class="sc">$</span>id[[<span class="dv">1</span>]],</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">effort =</span> models<span class="sc">$</span>supported_reasoning_efforts[[<span class="dv">1</span>]][[<span class="dv">1</span>]]</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>chat<span class="sc">$</span><span class="fu">chat</span>(<span class="st">&quot;Remember that the codeword is amber. Reply: acknowledged&quot;</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>chat<span class="sc">$</span><span class="fu">chat</span>(<span class="st">&quot;What was the codeword?&quot;</span>)</span></code></pre></div>
+<p>For example, if the account catalog omits the GPT-6 family but the
+chat service accepts it, select a model explicitly:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>chat <span class="ot">&lt;-</span> <span class="fu">chat_codex</span>(<span class="at">model =</span> <span class="st">&quot;gpt-6-luna&quot;</span>, <span class="at">effort =</span> <span class="st">&quot;medium&quot;</span>)</span></code></pre></div>
+<p>The returned object is an <code>ellmer</code> <code>Chat</code>
+(0.5.0 or later). Interactive Chat methods remain available: ordinary
+and structured chat, text/content streaming, reasoning effort, model
+parameters, registered function tools, async methods, callbacks,
+cancellation, cloning, rich image/PDF content, history, echo, and
+response metadata. The compatibility implementation checks required
+ellmer contracts at runtime. Provider token counting and file management
+are unsupported and fail before a request. The separate
+<code>parallel_chat*()</code> and <code>batch_chat*()</code> helpers are
+outside the stable core contract because ChatGPT plan usage is
+stream-only. ChatGPT plan usage also rejects some Responses arguments,
+including <code>temperature</code>, <code>top_p</code>,
+<code>max_tokens</code> (<code>max_output_tokens</code>),
+<code>metadata</code>, and <code>previous_response_id</code>; the
+package fails before sending a request that uses them. Function tools
+are sent in an <code>ellmer</code> tool namespace, as the preview
+requires.</p>
+<p>The constructor and the returned Chat object are documented
+separately. <code>?chat_codex</code> describes constructor arguments,
+credential side effects, conditions, and model selection; the
+<code>ellmer</code> Chat help describes the methods used for history,
+streaming, structured output, tools, callbacks, async work, and cloning.
+The package does not claim compatibility with ellmer’s separate
+<code>parallel_chat*()</code> or <code>batch_chat*()</code> helpers
+because the subscription transport is stream-only.</p>
+</div>
+<div id="tool-calling" class="section level2">
+<h2>Tool calling</h2>
+<p>Tools use the normal <code>ellmer</code> API. Codex can request one
+or more calls, the package executes the registered functions locally,
+and the results are sent back through the Responses protocol until Codex
+returns a final answer:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>weather_tool <span class="ot">&lt;-</span> ellmer<span class="sc">::</span><span class="fu">tool</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="cf">function</span>(city) <span class="fu">paste</span>(<span class="st">&quot;Sunny in&quot;</span>, city),</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">&quot;get_weather&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">description =</span> <span class="st">&quot;Get the current weather for a city.&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">arguments =</span> <span class="fu">list</span>(<span class="at">city =</span> ellmer<span class="sc">::</span><span class="fu">type_string</span>())</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>chat <span class="ot">&lt;-</span> <span class="fu">chat_codex</span>(<span class="at">model =</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;ELLMERCODEX_MODEL&quot;</span>))</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>chat<span class="sc">$</span><span class="fu">register_tool</span>(weather_tool)</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>chat<span class="sc">$</span><span class="fu">chat</span>(<span class="st">&quot;What is the weather in Montevideo?&quot;</span>)</span></code></pre></div>
+<p>Tool calls can be streamed as content, including their request and
+result objects:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>coro<span class="sc">::</span><span class="fu">collect</span>(chat<span class="sc">$</span><span class="fu">stream</span>(<span class="st">&quot;Check the weather again.&quot;</span>, <span class="at">stream =</span> <span class="st">&quot;content&quot;</span>))</span></code></pre></div>
+<p>Tool-containing turns stay in the history as
+<code>ellmer::ContentToolRequest</code> and
+<code>ellmer::ContentToolResult</code> objects.
+<code>$chat_structured()</code> follows ellmer’s semantics and disables
+registered tools for that request; use <code>$chat()</code> first when
+structured extraction needs tool-assisted context.</p>
+<p>Structured output uses the normal ellmer type system:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>chat<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="st">&quot;My name is Susan and I&#39;m 13 years old.&quot;</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">type =</span> ellmer<span class="sc">::</span><span class="fu">type_object</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>    <span class="at">name =</span> ellmer<span class="sc">::</span><span class="fu">type_string</span>(),</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>    <span class="at">age =</span> ellmer<span class="sc">::</span><span class="fu">type_integer</span>()</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  )</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="handle-failures" class="section level2">
+<h2>Handle failures</h2>
+<p>The package uses structured condition classes so applications do not
+need to parse messages. For example:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  chat<span class="sc">$</span><span class="fu">chat</span>(<span class="st">&quot;Hello&quot;</span>),</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">codex_auth_error =</span> <span class="cf">function</span>(error) {</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;Authentication failed; run codex_login() again.&quot;</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  },</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">codex_chat_error =</span> <span class="cf">function</span>(error) {</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;The experimental Codex request failed: &quot;</span>, <span class="fu">conditionMessage</span>(error))</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  },</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  <span class="at">codex_protocol_changed_error =</span> <span class="cf">function</span>(error) {</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;The experimental upstream protocol may have changed.&quot;</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  }</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>)</span></code></pre></div>
+<p>Messages are sanitized before they are signaled. Raw response bodies,
+bearer tokens, authorization codes, OAuth state, account identifiers,
+and credential-store contents are not intentionally included.</p>
+<p>For application code, handle the most specific condition first and
+then fall back to the parent classes. <code>codex_auth_error</code>
+covers missing, malformed, and expired credentials;
+<code>codex_request_error</code> covers transport failures; and
+<code>codex_protocol_changed_error</code> indicates that the upstream
+response shape may have changed. ChatGPT plan limits have their own
+subclasses: <code>codex_usage_limit_error</code> (a
+<code>codex_rate_limit_error</code>) means the plan’s usage limit was
+reached, and <code>codex_usage_unavailable_error</code> means plan usage
+is temporarily unavailable. The full list is available in
+<code>?ellmercodex-conditions</code>.</p>
+</div>
+<div id="sign-out" class="section level2">
+<h2>Sign out</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">codex_logout</span>()</span></code></pre></div>
+<p>Logout revokes the refresh token with OpenAI (pass
+<code>revoke = FALSE</code> to skip this), then removes the package’s
+own credential file and process-local credential. It keeps the host
+identifier, and it does not remove credentials belonging to Codex CLI or
+other clients.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

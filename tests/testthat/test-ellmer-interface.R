@@ -1,0 +1,661 @@
+skip_if_ellmer_contract_changed()
+
+codex_chat_openai <- getFromNamespace("codex_ellmer_chat_openai", "ellmercodex")
+codex_patch_chat <- getFromNamespace("codex_patch_chat", "ellmercodex")
+
+interface_fixture_auth <- function(expires_at = as.numeric(Sys.time()) + 3600) {
+  structure(
+    list(
+      access_token = "fixture-access-token",
+      refresh_token = "fixture-refresh-token",
+      client_id = "oaiapp_fixtureclient",
+      expires_at = expires_at
+    ),
+    class = c("codex_auth", "list")
+  )
+}
+
+interface_fixture_chat <- function(auth = interface_fixture_auth()) {
+  codex_patch_chat(codex_chat_openai(model = "fixture-model", auth = auth))
+}
+
+test_that("the complete installed ellmer Chat public interface is present", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  required <- c("chat", "chat_async", "chat_structured", "chat_structured_async",
+                "stream", "stream_async", "get_model_object", "get_rounds",
+                "last_round", "on_request_start", "on_request_end", "clone")
+  expect_gte(utils::packageVersion("ellmer"), package_version("0.5.0"))
+  expect_true(all(vapply(required, function(name) is.function(chat[[name]]), logical(1))))
+  expect_true(inherits(chat$get_model_object(), "ellmer::Model"))
+  expect_true(inherits(chat$get_provider(), "ellmercodex::CodexProvider"))
+})
+
+test_that("Chat state, metadata, model configuration, and history remain ellmer state", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  expect_identical(chat$get_system_prompt(), NULL)
+  expect_identical(chat$get_model(), "fixture-model")
+  chat$set_model("fixture-model-2")
+  expect_identical(chat$get_model(), "fixture-model-2")
+  chat$set_system_prompt("Be concise.")
+  expect_identical(chat$get_system_prompt(), "Be concise.")
+
+  assistant <- ellmer::AssistantTurn(
+    contents = list(ellmer::ContentText("fixture")),
+    tokens = c(10, 4, 2),
+    cost = codex_dollars(NA_real_),
+    duration = 1.25,
+    finish_reason = "success"
+  )
+  chat$add_turn(
+    ellmer::UserTurn(list(ellmer::ContentText("prompt"))),
+    assistant
+  )
+  expect_identical(chat$last_turn()@text, "fixture")
+  expect_identical(length(chat$get_turns()), 2L)
+  expect_identical(chat$get_tokens()$input[[1L]], 10)
+  expect_identical(chat$get_tokens()$output[[1L]], 4)
+  expect_identical(chat$get_tokens()$cached_input[[1L]], 2)
+  expect_length(chat$get_cost(include = "last"), 1L)
+})
+
+test_that("Chat cloning is independent and never retains the original Chat closure", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  chat$set_turns(list(ellmer::UserTurn(list(ellmer::ContentText("original")))))
+  clone <- chat$clone()
+  clone$set_turns(list(ellmer::UserTurn(list(ellmer::ContentText("clone")))))
+  clone$set_model("clone-model")
+
+  expect_identical(chat$get_turns()[[1L]]@text, "original")
+  expect_identical(clone$get_turns()[[1L]]@text, "clone")
+  expect_identical(chat$get_model(), "fixture-model")
+  expect_identical(clone$get_model(), "clone-model")
+  expect_false(identical(chat$.__enclos_env__$private, clone$.__enclos_env__$private))
+  expect_true(identical(
+    environment(chat$.__enclos_env__$private$submit_turns)$self,
+    chat
+  ))
+  expect_true(identical(
+    environment(clone$.__enclos_env__$private$submit_turns)$self,
+    clone
+  ))
+  expect_true(identical(
+    environment(chat$.__enclos_env__$private$chat_impl)$self,
+    chat
+  ))
+  expect_true(identical(
+    environment(clone$.__enclos_env__$private$chat_impl)$self,
+    clone
+  ))
+  expect_false(identical(
+    environment(clone$.__enclos_env__$private$submit_turns)$self,
+    chat
+  ))
+  expect_false(identical(
+    environment(clone$.__enclos_env__$private$chat_impl)$self,
+    chat
+  ))
+})
+
+test_that("ordered Codex content preserves text, tool, image, and later text", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  events <- list(
+    list(type = "response.output_text.delta", delta = "Before. "),
+    list(
+      type = "response.output_item.added",
+      item = list(
+        type = "function_call", id = "fc_order", call_id = "call_order",
+        name = "get_weather", arguments = "{}"
+      )
+    ),
+    list(type = "response.output_text.delta", delta = "Between. "),
+    list(
+      type = "response.output_item.done",
+      item = list(
+        type = "image_generation_call", id = "img_order",
+        output_format = "png", result = "aGVsbG8="
+      )
+    ),
+    list(type = "response.output_text.delta", delta = "After."),
+    list(
+      type = "response.completed",
+      response = list(status = "completed", output = list(
+        list(type = "function_call", id = "fc_order", call_id = "call_order",
+             name = "get_weather", arguments = "{}"),
+        list(type = "image_generation_call", id = "img_order",
+             output_format = "png", result = "aGVsbG8=")
+      ))
+    )
+  )
+  result <- NULL
+  for (event in events) {
+    result <- ellmer:::stream_merge_chunks(provider, result, event)
+  }
+  turn <- ellmer:::value_turn(provider, chat$get_model_object(), result)
+
+  expect_length(turn@contents, 5L)
+  expect_identical(turn@contents[[1L]]@text, "Before. ")
+  expect_true(inherits(turn@contents[[2L]], "ellmer::ContentToolRequest"))
+  expect_identical(turn@contents[[3L]]@text, "Between. ")
+  expect_true(inherits(turn@contents[[4L]], "ellmer::ContentImageInline"))
+  expect_identical(turn@contents[[5L]]@text, "After.")
+})
+
+test_that("reasoning summary deltas initialize an empty summary item", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  events <- list(
+    list(
+      type = "response.output_item.added",
+      item = list(
+        id = "reasoning_live",
+        type = "reasoning",
+        summary = list()
+      )
+    ),
+    list(
+      type = "response.reasoning_summary_part.added",
+      item_id = "reasoning_live",
+      summary_index = 0L,
+      part = list(type = "summary_text", text = "")
+    ),
+    list(
+      type = "response.reasoning_summary_text.delta",
+      item_id = "reasoning_live",
+      summary_index = 0L,
+      delta = "Thinking"
+    ),
+    list(
+      type = "response.reasoning_summary_text.delta",
+      item_id = "reasoning_live",
+      summary_index = 0L,
+      delta = " clearly."
+    )
+  )
+
+  result <- NULL
+  for (event in events) {
+    result <- ellmer:::stream_merge_chunks(provider, result, event)
+  }
+
+  expect_length(result$codex_items, 1L)
+  expect_identical(result$codex_keys, "reasoning:reasoning_live")
+  expect_identical(
+    result$codex_items[[1L]]$summary[[1L]]$text,
+    "Thinking clearly."
+  )
+})
+
+test_that("Responses message identity merges live text events once", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  events <- list(
+    list(
+      type = "response.output_item.added",
+      item = list(
+        id = "msg_live",
+        type = "message",
+        status = "in_progress",
+        content = list(),
+        role = "assistant"
+      )
+    ),
+    list(
+      type = "response.content_part.added",
+      content_index = 0L,
+      item_id = "msg_live",
+      part = list(type = "output_text", text = "")
+    ),
+    list(
+      type = "response.output_text.delta",
+      item_id = "msg_live",
+      delta = "Hello "
+    ),
+    list(
+      type = "response.output_text.delta",
+      item_id = "msg_live",
+      delta = "live"
+    ),
+    list(
+      type = "response.output_text.done",
+      item_id = "msg_live",
+      text = "Hello live"
+    ),
+    list(
+      type = "response.output_item.done",
+      item = list(
+        id = "msg_live",
+        type = "message",
+        status = "completed",
+        content = list(list(type = "output_text", text = "Hello live")),
+        role = "assistant"
+      )
+    ),
+    list(
+      type = "response.completed",
+      response = list(status = "completed", output = list())
+    )
+  )
+
+  result <- NULL
+  streamed <- list()
+  for (event in events) {
+    content <- ellmer:::stream_content(provider, event)
+    streamed <- c(streamed, content)
+    result <- ellmer:::stream_merge_chunks(provider, result, event)
+  }
+  turn <- ellmer:::value_turn(provider, chat$get_model_object(), result)
+
+  expect_length(result$codex_items, 1L)
+  expect_identical(result$codex_keys, "message:msg_live")
+  expect_length(turn@contents, 1L)
+  expect_identical(turn@contents[[1L]]@text, "Hello live")
+  expect_length(streamed, 2L)
+  expect_true(all(vapply(
+    streamed,
+    inherits,
+    logical(1),
+    what = "ellmer::ContentText"
+  )))
+  expect_identical(
+    paste0(vapply(streamed, function(value) value@text, character(1)), collapse = ""),
+    "Hello live"
+  )
+})
+
+test_that("terminal-only message items still provide content after deduplication", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  done <- list(
+    type = "response.output_item.done",
+    item = list(
+      id = "msg_terminal",
+      type = "message",
+      status = "completed",
+      content = list(list(type = "output_text", text = "Terminal text")),
+      role = "assistant"
+    )
+  )
+  result <- ellmer:::stream_merge_chunks(provider, NULL, done)
+  result <- ellmer:::stream_merge_chunks(
+    provider,
+    result,
+    list(
+      type = "response.completed",
+      response = list(status = "completed", output = list())
+    )
+  )
+  contents <- getFromNamespace(
+    "codex_terminal_stream_contents",
+    "ellmercodex"
+  )(
+    result,
+    streamed_item_keys = character(),
+    streamed_text = FALSE
+  )
+
+  expect_length(ellmer:::stream_content(provider, done), 0L)
+  expect_length(contents, 1L)
+  expect_identical(contents[[1L]]@text, "Terminal text")
+})
+
+test_that("content streaming exposes tools once and preserves unknown output", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  tool_content <- ellmer:::stream_content(
+    provider,
+    list(
+      type = "response.output_item.done",
+      item = list(
+        type = "function_call", id = "fc_stream", call_id = "call_stream",
+        name = "get_weather", arguments = "{}"
+      )
+    )
+  )
+  unknown_content <- ellmer:::stream_content(
+    provider,
+    list(
+      type = "response.output_item.done",
+      item = list(type = "computer_call", id = "terminal_1", output = "ls")
+    )
+  )
+
+  expect_true(inherits(tool_content[[1L]], "ellmer::ContentToolRequest"))
+  expect_true(inherits(unknown_content[[1L]], "ellmer::ContentJson"))
+  expect_identical(unknown_content[[1L]]@data$type, "computer_call")
+})
+
+test_that("usage and finish metadata are retained by the Codex converter", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  result <- NULL
+  result <- ellmer:::stream_merge_chunks(
+    provider,
+    result,
+    list(type = "response.output_text.delta", delta = "ok")
+  )
+  result <- ellmer:::stream_merge_chunks(
+    provider,
+    result,
+    list(
+      type = "response.completed",
+      response = list(
+        status = "completed",
+        service_tier = "default",
+        usage = list(
+          input_tokens = 10,
+          output_tokens = 4,
+          input_tokens_details = list(cached_tokens = 2)
+        ),
+        output = list()
+      )
+    )
+  )
+  turn <- ellmer:::value_turn(provider, chat$get_model_object(), result)
+
+  expect_identical(as.numeric(turn@tokens), c(8, 4, 2))
+  expect_identical(turn@finish_reason, "success")
+  expect_identical(turn@json$usage$input_tokens, 10)
+  expect_true(inherits(turn@cost, "ellmer_dollars"))
+})
+
+test_that("usage fields omitted by Codex remain unknown", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  result <- ellmer:::stream_merge_chunks(
+    provider,
+    NULL,
+    list(type = "response.output_text.delta", delta = "unknown usage")
+  )
+  result <- ellmer:::stream_merge_chunks(
+    provider,
+    result,
+    list(
+      type = "response.completed",
+      response = list(status = "completed", output = list())
+    )
+  )
+  turn <- ellmer:::value_turn(provider, chat$get_model_object(), result)
+
+  expect_true(all(is.na(as.numeric(turn@tokens))))
+  expect_null(turn@json$usage)
+
+  answer <- httr2::with_mocked_responses(
+    function(req) fixture_stream_response("stream-async-empty-terminal.sse"),
+    chat$chat("Say hello.")
+  )
+  expect_identical(as.character(answer), "Hello async")
+  expect_true(all(is.na(as.numeric(chat$last_turn()@tokens))))
+})
+
+test_that("expired injected credentials refresh once without cache re-entry", {
+  skip_if_not_installed("ellmer")
+
+  auth <- interface_fixture_auth(expires_at = as.numeric(Sys.time()) - 3600)
+  refreshed <- interface_fixture_auth(expires_at = as.numeric(Sys.time()) + 3600)
+  refresh_calls <- 0L
+  local_mocked_bindings(
+    codex_refresh = function(value, persist = TRUE) {
+      refresh_calls <<- refresh_calls + 1L
+      refreshed
+    },
+    codex_credentials_load = function(...) stop("persistent-cache re-entry"),
+    .package = "ellmercodex"
+  )
+
+  chat <- interface_fixture_chat(auth)
+  provider <- chat$get_provider()
+  expect_identical(provider@credentials(), "fixture-access-token")
+  expect_identical(provider@credentials(), "fixture-access-token")
+  expect_identical(refresh_calls, 1L)
+})
+
+test_that("a new user turn closes dangling tool requests through ellmer", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  dangling <- ellmer::ContentToolRequest(
+    id = "dangling-call",
+    name = "get_weather",
+    arguments = list(city = "Montevideo")
+  )
+  chat$set_turns(list(
+    ellmer::UserTurn(list(ellmer::ContentText("old prompt"))),
+    ellmer::AssistantTurn(contents = list(dangling), finish_reason = "tool_use")
+  ))
+  seen <- NULL
+  answer <- httr2::with_mocked_responses(
+    function(req) {
+      seen <<- req
+      fixture_stream_response("tool-final.sse")
+    },
+    chat$chat("continue")
+  )
+
+  expect_identical(as.character(answer), "The weather result is sunny.")
+  input <- seen$body$data$input
+  expect_true(any(vapply(input, function(item) {
+    is.list(item) && identical(item$type, "function_call_output") &&
+      identical(item$call_id, "dangling-call")
+  }, logical(1))))
+})
+
+test_that("cancellation stops a tool round before another Codex request", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  controller <- ellmer::stream_controller()
+  tool <- ellmer::tool(
+    function(city) paste("fixture result", city),
+    name = "get_weather",
+    description = "Fixture tool.",
+    arguments = list(city = ellmer::type_string())
+  )
+  chat$register_tool(tool)
+  chat$on_tool_request(function(request) controller$cancel())
+
+  requests <- 0L
+  chunks <- httr2::with_mocked_responses(
+    function(req) {
+      requests <<- requests + 1L
+      if (requests == 1L) {
+        fixture_stream_response("tool-no-text.sse")
+      } else {
+        stop("cancellation should prevent a second Codex request")
+      }
+    },
+    coro::collect(chat$stream(
+      "Try the tool.",
+      stream = "content",
+      controller = controller
+    ))
+  )
+
+  expect_true(controller$cancelled)
+  expect_identical(requests, 1L)
+  expect_true(any(vapply(
+    chunks,
+    inherits,
+    logical(1),
+    what = "ellmer::ContentToolRequest"
+  )))
+  expect_true(inherits(
+    chat$last_turn()@contents[[1L]],
+    "ellmer::ContentToolRequest"
+  ))
+})
+
+test_that("all documented parallel and batch helpers fail offline", {
+  skip_if_not_installed("ellmer")
+
+  chat <- interface_fixture_chat()
+  provider <- chat$get_provider()
+  expect_false(ellmer:::has_batch_support(provider))
+  expect_error(
+    ellmer:::chat_request(
+      provider,
+      stream = FALSE,
+      turns = list(ellmer::UserTurn(list(ellmer::ContentText("fixture"))))
+    ),
+    class = "codex_ellmer_parallel_batch_blocker"
+  )
+  parallel_helpers <- list(
+    parallel_chat = function() ellmer::parallel_chat(chat, prompts = list("fixture")),
+    parallel_chat_text = function() ellmer::parallel_chat_text(chat, prompts = list("fixture")),
+    parallel_chat_structured = function() ellmer::parallel_chat_structured(
+      chat,
+      prompts = list("fixture"),
+      type = ellmer::type_string()
+    )
+  )
+  for (helper in parallel_helpers) {
+    expect_error(helper(), class = "codex_ellmer_parallel_batch_blocker")
+  }
+
+  path <- tempfile(fileext = ".json")
+  on.exit(unlink(path), add = TRUE)
+  batch_helpers <- list(
+    batch_chat = function() ellmer::batch_chat(
+      chat, prompts = list("fixture"), path = path
+    ),
+    batch_chat_text = function() ellmer::batch_chat_text(
+      chat, prompts = list("fixture"), path = path
+    ),
+    batch_chat_structured = function() ellmer::batch_chat_structured(
+      chat,
+      prompts = list("fixture"),
+      path = path,
+      type = ellmer::type_string()
+    ),
+    batch_chat_completed = function() ellmer::batch_chat_completed(
+      chat, prompts = list("fixture"), path = path
+    )
+  )
+  for (helper in batch_helpers) {
+    expect_error(
+      helper(),
+      regexp = "Batch requests are not currently supported by this provider"
+    )
+  }
+  expect_false(file.exists(path))
+})
+
+test_that("request callbacks run for every synchronous tool round", {
+  chat <- interface_fixture_chat()
+  chat$register_tool(ellmer::tool(
+    function(city) paste("Sunny in", city),
+    name = "get_weather", description = "Get weather.",
+    arguments = list(city = ellmer::type_string())
+  ))
+  starts <- list()
+  ends <- list()
+  chat$on_request_start(function(turns) starts[[length(starts) + 1L]] <<- turns)
+  chat$on_request_end(function(turn) ends[[length(ends) + 1L]] <<- turn)
+  requests <- 0L
+  answer <- httr2::with_mocked_responses(
+    function(req) {
+      requests <<- requests + 1L
+      fixture_stream_response(if (requests == 1L) "tool-one.sse" else "tool-final.sse")
+    },
+    chat$chat("Weather?")
+  )
+  expect_s3_class(answer, "ellmer_output")
+  expect_identical(requests, 2L)
+  expect_length(starts, 2L)
+  expect_length(ends, 2L)
+  expect_s3_class(ends[[1L]], "ellmer::AssistantTurn")
+})
+
+test_that("unsupported provider methods fail before a request", {
+  chat <- interface_fixture_chat()
+  calls <- 0L
+  result <- httr2::with_mocked_responses(
+    function(req) {
+      calls <<- calls + 1L
+      stop("unexpected request")
+    },
+    list(
+      token = tryCatch(chat$token_count("hi"), error = identity),
+      files = tryCatch(chat$file_list(), error = identity),
+      upload = tryCatch(chat$file_upload("fixture.txt"), error = identity)
+    )
+  )
+  expect_identical(calls, 0L)
+  for (condition in result) {
+    expect_s3_class(condition, "codex_ellmer_compatibility_error")
+  }
+})
+
+test_that("cloned Chat sends through its own history", {
+  chat <- interface_fixture_chat()
+  clone <- chat$clone()
+  clone$set_system_prompt("Clone only.")
+  request_turns <- NULL
+  clone$on_request_start(function(turns) request_turns <<- turns)
+  answer <- httr2::with_mocked_responses(
+    function(req) {
+      fixture_stream_response("stream-async-empty-terminal.sse")
+    },
+    clone$chat("Hello.")
+  )
+  expect_identical(as.character(answer), "Hello async")
+  expect_length(chat$get_turns(), 0L)
+  expect_length(clone$get_turns(), 2L)
+  expect_s3_class(request_turns[[1L]], "ellmer::SystemTurn")
+})
+
+test_that("private Chat contract changes raise a typed compatibility error", {
+  chat <- interface_fixture_chat()
+  private <- chat$.__enclos_env__$private
+  rlang::env_binding_unlock(private, "chat_impl")
+  private$chat_impl <- function(user_turn) invisible(NULL)
+  rlang::env_binding_lock(private, "chat_impl")
+  attr(chat, "ellmercodex_compatibility") <- NULL
+  condition <- tryCatch(
+    getFromNamespace("codex_patch_chat", "ellmercodex")(chat),
+    error = identity
+  )
+  expect_s3_class(condition, "codex_ellmer_compatibility_error")
+  expect_match(conditionMessage(condition), "chat_impl")
+})
+
+test_that("generation requests never retry and keep ellmer's error body", {
+  chat <- interface_fixture_chat()
+  request <- codex_provider_request(
+    chat$get_provider(),
+    chat$get_model_object(),
+    stream = TRUE,
+    turns = list(ellmer::UserTurn(list(ellmer::ContentText("fixture"))))
+  )
+  expect_null(request$policies$retry_max_tries)
+  expect_identical(request$policies$error_body, codex_provider_error_body)
+  expect_true(endsWith(request$url, "/responses"))
+  expect_true(isTRUE(request$body$data$stream))
+
+  response <- httr2::response(
+    status_code = 400L,
+    headers = list(`Content-Type` = "application/json"),
+    body = charToRaw('{"error":{"message":"fixture failure"}}')
+  )
+  expect_identical(codex_provider_error_body(response), "fixture failure")
+})
