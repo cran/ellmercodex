@@ -1,3 +1,19 @@
+# ellmercodex 0.2.1
+
+* Works with `ellmer` 0.5.1 and later, which changed how chats record
+  OpenTelemetry spans. `ellmercodex` now requires `ellmer` (>= 0.5.1) and
+  records spans, token metrics, and request duration the same way `ellmer`
+  does (@thisisnic, #15, #16).
+* The README is now in English only. The Spanish introduction moved to a new
+  vignette, `vignette("ellmercodex-es")`.
+* The documentation is reorganized like `ellmer`'s: a "Get started" vignette
+  (`vignette("ellmercodex")`) plus focused articles on signing in, models,
+  text analysis, and errors and limits, each with a Spanish version. A pkgdown
+  site is at <https://simxnherrera.github.io/ellmercodex/>.
+* The error-handling example now uses condition classes that match the
+  package's actual class structure.
+* The tool example returns JSON, as `ellmer` 0.5.0 expects from tools.
+
 # ellmercodex 0.2.0
 
 ## Breaking changes: documented "Sign in with ChatGPT" flow
