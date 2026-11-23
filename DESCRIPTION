@@ -1,6 +1,6 @@
 Package: ellmercodex
 Title: 'ChatGPT' Plan Provider for 'ellmer'
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: person("Simon", "Herrera", email = "simxnherrera@gmail.com", role = c("aut", "cre", "cph"))
 URL: https://simxnherrera.github.io/ellmercodex/,
         https://github.com/simxnherrera/ellmercodex
@@ -29,8 +29,8 @@ VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: no
-Packaged: 2026-11-10 18:21:45 UTC; simonherrera
+Packaged: 2026-11-23 21:18:21 UTC; simonherrera
 Author: Simon Herrera [aut, cre, cph]
 Maintainer: Simon Herrera <simxnherrera@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-11-11 00:20:02 UTC
+Date/Publication: 2026-11-23 21:50:02 UTC

@@ -1,7 +1,7 @@
-e9841f07561f9895912c07b3868baba5 *DESCRIPTION
+f933ae0b29dbe4c28abe4fb1ab50f70c *DESCRIPTION
 0eb4b84d493db85c1836f64fcba40f15 *LICENSE
 a21079d743b1b84d8496beeaf9af8d5f *NAMESPACE
-aa8e78d2ffbe57cce17b3ba4cbf2e827 *NEWS.md
+3d6f7f1d1b0c4f0729ed316e754fe72e *NEWS.md
 75a62ac48daaa9424239c3dc40b49e6f *R/auth.R
 213f050cf4d157b327164fbdbde8140c *R/chat-codex.R
 5193dcc987f7a001d6681a2d77aab597 *R/conditions-auth.R
@@ -9,14 +9,14 @@ d35344f67c86a13946615faf96477a26 *R/conditions.R
 1bd8311c966758c5a22883f65a19742e *R/config.R
 ce207afdd04cfdde51c1429ea00705c6 *R/credentials.R
 438921b67a72e4cbfeb75cb9d947c57c *R/diagnostics.R
-6153262e6b4139d2bd4b7a965066d3cb *R/ellmer-compatibility.R
+09fda6ae5b5c14674660048cd1e2f0e2 *R/ellmer-compatibility.R
 e631a9339847abc3fdfa33423881b30b *R/ellmercodex-package.R
 2f0568f621e7e01acfe0c0881806e3f6 *R/models.R
 71eb73a7a2c902204f2bce68480be950 *R/provider-codex.R
 ea1daa7343d88c5b0c1f6ef1efedaa81 *R/stream.R
 07d6f418c8c6141c45b8e29c5eb9a0f1 *R/transport.R
 a777387191245f8ae8ceb890c0c1d191 *README.md
-beaeb294e8eed24c0f39fd15cc5cf2be *build/vignette.rds
+9590a2815363ec4face70cd7bcaeeab4 *build/vignette.rds
 7a794cb11e9e8095d124474e65d96069 *inst/CITATION
 7be8198cfb412a2e1338d347c49d3e04 *inst/WORDLIST
 46c3fae21da3d4e1173e3700198a279f *inst/doc/authentication-es.R
